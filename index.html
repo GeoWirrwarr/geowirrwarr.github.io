@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coordinate Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.2/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.15.0/proj4.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -12,7 +12,7 @@
     <div class="container mx-auto p-6 max-w-3xl">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">📍 Coordinate Converter</h1>
-            <span id="version" class="text-sm font-medium text-gray-400">Version: 1.00</span>
+            <span class="text-sm font-medium text-gray-400">Version: 1.11</span>
         </div>
 
         <!-- File Upload -->
@@ -54,17 +54,7 @@
     <script>
         // Define Projections
         const projWGS84 = "EPSG:4326"; // WGS84 Lat/Lon
-        const projUTM32N = "EPSG:25832"; // UTM Zone 32N
-
-        // Version Counter (for tracking live version)
-        let version = 1.00; // Set initial version
-        const versionElement = document.getElementById("version");
-
-        // Update version each time new code is produced
-        function updateVersion() {
-            version += 0.01; // Increment version by 0.01 for each request
-            versionElement.textContent = `Version: ${version.toFixed(2)}`;
-        }
+        const projUTM32N = "EPSG:25832"; // UTM Zone 32N (Correct EPSG code)
 
         // Convert DMS to Decimal Degrees
         function dmsToDecimal(degrees, minutes, seconds, direction) {
