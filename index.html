@@ -50,6 +50,29 @@
         const projGoogle = "EPSG:3857"; // Google Maps Web Mercator
         const projUTM32N = "EPSG:32632"; // UTM Zone 32N
 
+        // Convert DMS to Decimal Degrees
+        function dmsToDecimal(degrees, minutes, seconds, direction) {
+            let decimal = parseFloat(degrees) + parseFloat(minutes) / 60 + parseFloat(seconds) / 3600;
+            if (direction === "S" || direction === "W") {
+                decimal = -decimal;
+            }
+            return decimal;
+        }
+
+        // Parse DMS format (48°18'32.6"N 10°52'07.5"E) to Decimal Degrees
+        function parseDMS(dms) {
+            const regex = /(\d{1,3})°(\d{1,2})'(\d{1,2}\.\d+)"([NSWE])/;
+            const match = dms.match(regex);
+            if (match) {
+                const degrees = match[1];
+                const minutes = match[2];
+                const seconds = match[3];
+                const direction = match[4];
+                return dmsToDecimal(degrees, minutes, seconds, direction);
+            }
+            return NaN;
+        }
+
         function detectProjection(x, y) {
             if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return projWGS84; // WGS84 Lat/Lon
             if (Math.abs(y) <= 180 && Math.abs(x) <= 90) return projWGS84; // Swapped Lat/Lon -> Fix!
@@ -64,21 +87,36 @@
             const lines = inputText.split("\n");
             let results = "Easting (X)\tNorthing (Y)\n";
             let csvOutput = "Easting (X),Northing (Y)\n";
+            let firstRow = true; // Flag to handle column names
 
             for (let line of lines) {
                 let values = line.trim().split(/\s+/); // Split by any whitespace
-                if (values.length < 2) continue; // Skip empty lines
+                if (values.length < 2) continue; // Skip empty lines or malformed rows
+
+                // Skip first row if it contains column names
+                if (firstRow && isNaN(values[0]) && isNaN(values[1])) {
+                    firstRow = false;
+                    continue; // Skip column headers
+                }
 
                 let x = parseFloat(values[0]);
                 let y = parseFloat(values[1]);
+
+                // Check if coordinates are in DMS format (e.g., "48°18'32.6"N")
+                if (isNaN(x)) {
+                    x = parseDMS(values[0]);
+                }
+                if (isNaN(y)) {
+                    y = parseDMS(values[1]);
+                }
 
                 if (isNaN(x) || isNaN(y)) continue; // Skip invalid rows
 
                 let detectedProj = detectProjection(x, y);
 
-                // Auto-fix swapped coordinates
+                // Auto-fix swapped coordinates (check if y > 180, then swap)
                 if (detectedProj === projWGS84 && Math.abs(y) > 180) {
-                    [x, y] = [y, x]; // Swap back to correct order
+                    [x, y] = [y, x]; // Swap to correct order
                 }
 
                 let [utmX, utmY] = proj4(detectedProj, projUTM32N, [x, y]);
