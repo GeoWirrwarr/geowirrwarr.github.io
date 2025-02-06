@@ -12,7 +12,7 @@
     <div class="container mx-auto p-6 max-w-3xl">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">📍 Coordinate Converter</h1>
-            <span id="version" class="text-sm font-medium text-gray-400">Version: 1.11</span>
+            <span id="version" class="text-sm font-medium text-gray-400">Version: 1.12</span>
         </div>
 
         <!-- File Upload -->
@@ -59,12 +59,13 @@
         const projUTM32N = "EPSG:32632"; // UTM Zone 32N
 
         // Version Counter (for tracking live version)
-        let version = "1.11"; // Set initial version
+        let version = 1.12; // Set initial version
         const versionElement = document.getElementById("version");
 
         // Update version each time a new request is made
         function updateVersion() {
-            versionElement.textContent = `Version: ${version}`;
+            version += 0.01; // Increment version by 0.01 for each request
+            versionElement.textContent = `Version: ${version.toFixed(2)}`;
         }
 
         // Convert DMS to Decimal Degrees
@@ -113,7 +114,7 @@
                 if (values.length < 2) continue; // Skip empty lines or malformed rows
 
                 // Skip first row if it contains column names
-                if (firstRow && isNaN(values[0]) && isNaN(values[1])) {
+                if (firstRow && (values[0].includes("Longitude") || values[0].includes("Latitude"))) {
                     firstRow = false;
                     continue; // Skip column headers
                 }
