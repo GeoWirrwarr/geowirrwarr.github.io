@@ -87,9 +87,14 @@
                 csvOutput += `${utmX.toFixed(2)},${utmY.toFixed(2)}\n`;
             }
 
-            document.getElementById("output").textContent = results;
-            document.getElementById("downloadBtn").dataset.csv = csvOutput;
-            document.getElementById("downloadBtn").classList.remove("hidden");
+            // Display results and allow CSV download
+            if (results.trim()) {
+                document.getElementById("output").textContent = results;
+                document.getElementById("downloadBtn").dataset.csv = csvOutput;
+                document.getElementById("downloadBtn").classList.remove("hidden");
+            } else {
+                alert("No valid coordinates to convert!");
+            }
         }
 
         function handleFileUpload(event) {
