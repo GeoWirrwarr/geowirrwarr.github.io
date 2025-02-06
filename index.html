@@ -60,7 +60,7 @@
         let version = 1.00; // Set initial version
         const versionElement = document.getElementById("version");
 
-        // Update version each time a new request is made
+        // Update version each time new code is produced
         function updateVersion() {
             version += 0.01; // Increment version by 0.01 for each request
             versionElement.textContent = `Version: ${version.toFixed(2)}`;
@@ -95,8 +95,6 @@
         }
 
         function convertCoordinates() {
-            updateVersion(); // Update version when a conversion is triggered
-            
             const inputText = document.getElementById("input").value.trim();
             if (!inputText) return alert("Please paste coordinates first!");
 
