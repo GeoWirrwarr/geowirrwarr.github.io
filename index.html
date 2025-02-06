@@ -154,13 +154,27 @@
             }
         }
 
+        // Handle CSV Upload
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function (e) {
-                document.getElementById("input").value = e.target.result;
+                const text = e.target.result;
+
+                // Split file into lines
+                const lines = text.split("\n");
+
+                // Clean up data and handle special characters (° to deg)
+                const cleanedData = lines.map(line => {
+                    return line.replace(/°/g, "°")  // Fix any malformed degree symbols
+                        .replace(/;/g, ',')         // Handle semicolon delimited CSV
+                        .replace(/"/g, '');         // Remove quotation marks
+                });
+
+                // Display cleaned data in input
+                document.getElementById("input").value = cleanedData.join("\n");
             };
             reader.readAsText(file);
         }
