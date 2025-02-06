@@ -55,6 +55,9 @@
         // Define Projections
         const projWGS84 = "EPSG:4326"; // WGS84 Lat/Lon
         const projUTM32N = "EPSG:25832"; // UTM Zone 32N (Correct EPSG code)
+        const projGK4 = "EPSG:31468"; // GK4 (German Grid)
+        const projEPSG3857 = "EPSG:3857"; // EPSG:3857 (Web Mercator)
+        const projMGRS = "EPSG:4326"; // MGRS is considered as WGS84 Lat/Lon
 
         // Convert DMS to Decimal Degrees
         function dmsToDecimal(degrees, minutes, seconds, direction) {
@@ -79,11 +82,19 @@
             return NaN;
         }
 
+        // Detect the Projection Type based on input
         function detectProjection(x, y) {
-            if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return projWGS84; // WGS84 Lat/Lon
-            return projWGS84; // Default to WGS84 Lat/Lon
+            if (x < 1000000 && y < 1000000) {
+                return projWGS84; // Likely Lat/Lon
+            } else if (x < 1000000 || y < 1000000) {
+                return projMGRS; // Likely MGRS
+            } else if (x > 100000 && y > 100000) {
+                return projUTM32N; // Likely UTM Zone 32N
+            }
+            return projWGS84; // Default fallback
         }
 
+        // Convert Coordinates
         function convertCoordinates() {
             const inputText = document.getElementById("input").value.trim();
             if (!inputText) return alert("Please paste coordinates first!");
