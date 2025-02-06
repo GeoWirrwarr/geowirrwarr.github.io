@@ -104,7 +104,12 @@
             const inputText = document.getElementById("input").value.trim();
             if (!inputText) return alert("Please paste coordinates first!");
 
-            const lines = inputText.split("\n");
+            // Normalize input to fix ASCII/Unicode issues
+            const normalizedText = inputText.replace(/°/g, '°')  // Ensure degree symbol is correct
+                .replace(/[\u2018\u2019\u201C\u201D]/g, "'") // Fix any smart quotes
+                .replace(/[^\x00-\x7F]/g, ''); // Remove non-ASCII characters
+
+            const lines = normalizedText.split("\n");
             let results = "Easting (X)\tNorthing (Y)\n";
             let csvOutput = "Easting (X),Northing (Y)\n";
             let firstRow = true; // Flag to handle column names
@@ -169,7 +174,7 @@
 
                 // Clean up data and handle special characters (° to deg)
                 const cleanedData = lines.map(line => {
-                    return line.replace(/°/g, "°")  // Fix any malformed degree symbols
+                    return line.replace(/°/g, '°')  // Fix any malformed degree symbols
                         .replace(/;/g, ',')         // Handle semicolon delimited CSV
                         .replace(/"/g, '');         // Remove quotation marks
                 });
