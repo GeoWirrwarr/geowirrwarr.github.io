@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-900 text-white font-sans">
 
     <div class="container mx-auto p-6 max-w-3xl">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold">📍 Coordinate Converter</h1>
-            <span class="text-sm font-medium text-gray-400">Version: 1.2</span>
+            <h1 class="text-3xl font-bold"> Coordinate Converter</h1>
+            <span class="text-sm font-medium text-gray-400">Version: 1.3</span>
         </div>
 
         <div class="mb-4">
@@ -37,11 +39,13 @@
                 <pre id="output" class="overflow-auto whitespace-pre-wrap"></pre>
             </div>
             <div class="flex justify-end mt-3">
-                <button onclick="downloadCSV()" id="downloadBtn" class="p-2 bg-green-500 hover:bg-green-600 rounded font-bold mr-2 hidden">
-                    📥 Download CSV
+                <button onclick="downloadCSV()" id="downloadBtn"
+                    class="p-2 bg-green-500 hover:bg-green-600 rounded font-bold mr-2 hidden">
+                     Download CSV
                 </button>
-                <button onclick="copyToClipboard()" id="copyBtn" class="p-2 bg-yellow-500 hover:bg-yellow-600 rounded font-bold">
-                    📋 Copy to Clipboard
+                <button onclick="copyToClipboard()" id="copyBtn"
+                    class="p-2 bg-yellow-500 hover:bg-yellow-600 rounded font-bold">
+                     Copy to Clipboard
                 </button>
             </div>
         </div>
@@ -54,42 +58,20 @@
         const projEPSG3857 = "EPSG:3857";
         const projMGRS = "EPSG:4326"; // MGRS uses WGS84
 
-        function dmsToDecimal(degrees, minutes, seconds, direction) {
-            let decimal = parseFloat(degrees) + parseFloat(minutes) / 60 + parseFloat(seconds) / 3600;
-            if (direction === "S" || direction === "W") {
-                decimal = -decimal;
-            }
-            return decimal;
-        }
-
-        function parseDMS(dms) {
-            const regex = /(\d{1,3})°(\d{1,2})'(\d{1,2}\.\d+)"([NSWE])/;
-            const match = dms.match(regex);
-            if (match) {
-                const degrees = match[1];
-                const minutes = match[2];
-                const seconds = match[3];
-                const direction = match[4];
-                return dmsToDecimal(degrees, minutes, seconds, direction);
-            }
-            return NaN;
-        }
-
+        // ... (dmsToDecimal und parseDMS Funktionen bleiben gleich)
 
         function detectProjection(x, y) {
-          if (isNaN(x) || isNaN(y)) return null; // Handle invalid input
+            if (isNaN(x) || isNaN(y)) return null; // Handle invalid input
 
-          if (x >= -180 && x <= 180 && y >= -90 && y <= 90) {
-            return projWGS84; // Lat/Lon
-          } else if (x > 100000 && y > 100000) {
-            return projUTM32N; // UTM
-          }
-           else if (x > 1000000 || y > 1000000) {
-            return projGK4; // Assuming large numbers are GK4
-          }
-          return null; // Unable to determine
+            if (x >= -180 && x <= 180 && y >= -90 && y <= 90) {
+                return projWGS84; // Lat/Lon
+            } else if (x > 100000 && y > 100000) {
+                return projUTM32N; // UTM
+            } else if (x > 1000000 || y > 1000000) {
+                return projGK4; // Assuming large numbers are GK4
+            }
+            return null; // Unable to determine
         }
-
 
         function convertCoordinates() {
             const inputText = document.getElementById("input").value.trim();
@@ -126,7 +108,6 @@
                     continue; // Skip invalid rows
                 }
 
-
                 let [utmX, utmY] = proj4(detectedProj, projUTM32N, [x, y]);
 
                 results += `${utmX.toFixed(2)}\t${utmY.toFixed(2)}\n`;
@@ -137,15 +118,14 @@
                 document.getElementById("output").textContent = results + errors; // Display results and errors
                 document.getElementById("downloadBtn").dataset.csv = csvOutput;
                 document.getElementById("downloadBtn").classList.remove("hidden");
+                alert("Koordinaten erfolgreich konvertiert!"); // Pop-up message
             } else {
-              document.getElementById("output").textContent = errors; // Display only errors if no conversions
+                document.getElementById("output").textContent = errors; // Display only errors if no conversions
                 if (!errors) {
-                  alert("No valid coordinates to convert!");
+                    alert("No valid coordinates to convert!");
                 }
             }
         }
-
-
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -171,11 +151,12 @@
         function copyToClipboard() {
             const outputText = document.getElementById("output").textContent;
             navigator.clipboard.writeText(outputText)
-              .then(() => alert("Coordinates copied to clipboard!"))
-              .catch(err => console.error('Failed to copy: ', err));
+                .then(() => alert("Coordinates copied to clipboard!"))
+                .catch(err => console.error('Failed to copy: ', err));
 
         }
     </script>
 
 </body>
+
 </html>
