@@ -14,7 +14,7 @@
     <div class="container mx-auto p-6 max-w-3xl">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold"> Coordinate Converter</h1>
-            <span class="text-sm font-medium text-gray-400">Version: 1.3</span>
+            <span class="text-sm font-medium text-gray-400">Version: 1.4</span>
         </div>
 
         <div class="mb-4">
@@ -54,21 +54,43 @@
     <script>
         const projWGS84 = "EPSG:4326";
         const projUTM32N = "EPSG:25832";
-        const projGK4 = "EPSG:31468";
+        const projGK4 = "EPSG:31468"; // GK4
         const projEPSG3857 = "EPSG:3857";
         const projMGRS = "EPSG:4326"; // MGRS uses WGS84
 
-        // ... (dmsToDecimal und parseDMS Funktionen bleiben gleich)
+        proj4.defs("EPSG:31468", "+proj=tmerc +lat_0=0 +lon_0=9 +k=1 +x_0=3500000 +y_0=0 +ellps=bessel +datum=potsdam +units=m +no_defs");
+
+
+        function dmsToDecimal(degrees, minutes, seconds, direction) {
+            let decimal = parseFloat(degrees) + parseFloat(minutes) / 60 + parseFloat(seconds) / 3600;
+            if (direction === "S" || direction === "W") {
+                decimal = -decimal;
+            }
+            return decimal;
+        }
+
+        function parseDMS(dms) {
+            const regex = /(\d{1,3})°(\d{1,2})'(\d{1,2}\.\d+)"([NSWE])/;
+            const match = dms.match(regex);
+            if (match) {
+                const degrees = match[1];
+                const minutes = match[2];
+                const seconds = match[3];
+                const direction = match[4];
+                return dmsToDecimal(degrees, minutes, seconds, direction);
+            }
+            return NaN;
+        }
 
         function detectProjection(x, y) {
-            if (isNaN(x) || isNaN(y)) return null; // Handle invalid input
+            if (isNaN(x) || isNaN(y)) return null;
 
             if (x >= -180 && x <= 180 && y >= -90 && y <= 90) {
                 return projWGS84; // Lat/Lon
-            } else if (x > 100000 && y > 100000) {
+            } else if (x > 100000 && y > 100000 && x < 1000000 && y < 1000000) {
                 return projUTM32N; // UTM
             } else if (x > 1000000 || y > 1000000) {
-                return projGK4; // Assuming large numbers are GK4
+                return projGK4; // GK4
             }
             return null; // Unable to determine
         }
@@ -84,10 +106,10 @@
             const lines = normalizedText.split("\n");
             let results = "Easting (X)\tNorthing (Y)\n";
             let csvOutput = "Easting (X),Northing (Y)\n";
-            let errors = ""; // Store error messages
+            let errors = "";
 
             for (let line of lines) {
-                const values = line.trim().split(/\s*[,;\t]\s*/); // Split by comma, semicolon, or tab
+                const values = line.trim().split(/\s*[,;\t]\s*/);
 
                 if (values.length < 2) continue;
 
@@ -102,25 +124,32 @@
                 }
 
                 const detectedProj = detectProjection(x, y);
+                console.log("Koordinaten:", x, y, "Erkannte Projektion:", detectedProj);
 
                 if (isNaN(x) || isNaN(y) || detectedProj === null) {
                     errors += `Invalid coordinates on line: ${line}\n`;
-                    continue; // Skip invalid rows
+                    continue;
                 }
 
-                let [utmX, utmY] = proj4(detectedProj, projUTM32N, [x, y]);
+                try {
+                    let [utmX, utmY] = proj4(detectedProj, projUTM32N, [x, y]);
+                    console.log("Konvertierungsergebnis:", utmX, utmY);
 
-                results += `${utmX.toFixed(2)}\t${utmY.toFixed(2)}\n`;
-                csvOutput += `${utmX.toFixed(2)},${utmY.toFixed(2)}\n`;
+                    results += `<span class="math-inline">\{utmX\.toFixed\(2\)\}\\t</span>{utmY.toFixed(2)}\n`;
+                    csvOutput += `<span class="math-inline">\{utmX\.toFixed\(2\)\},</span>{utmY.toFixed(2)}\n`;
+                } catch (error) {
+                    console.error("Fehler bei der Konvertierung:", error);
+                    errors += `Fehler bei der Konvertierung der Zeile: ${line}\n`;
+                }
             }
 
             if (results.trim()) {
-                document.getElementById("output").textContent = results + errors; // Display results and errors
+                document.getElementById("output").textContent = results + errors;
                 document.getElementById("downloadBtn").dataset.csv = csvOutput;
                 document.getElementById("downloadBtn").classList.remove("hidden");
-                alert("Koordinaten erfolgreich konvertiert!"); // Pop-up message
+                alert("Koordinaten erfolgreich konvertiert!");
             } else {
-                document.getElementById("output").textContent = errors; // Display only errors if no conversions
+                document.getElementById("output").textContent = errors;
                 if (!errors) {
                     alert("No valid coordinates to convert!");
                 }
@@ -134,7 +163,7 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const text = e.target.result;
-                document.getElementById("input").value = text; // Directly set the text
+                document.getElementById("input").value = text;
             };
             reader.readAsText(file);
         }
