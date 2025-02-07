@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coordinate Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.15.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white font-sans">
@@ -12,29 +12,25 @@
     <div class="container mx-auto p-6 max-w-3xl">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">📍 Coordinate Converter</h1>
-            <span class="text-sm font-medium text-gray-400">Version: 1.11</span>
+            <span class="text-sm font-medium text-gray-400">Version: 1.2</span>
         </div>
 
-        <!-- File Upload -->
         <div class="mb-4">
             <label class="block text-lg mb-2">Upload CSV/TXT File:</label>
-            <input type="file" id="fileInput" accept=".csv,.txt" 
+            <input type="file" id="fileInput" accept=".csv,.txt"
                 class="w-full p-2 border border-gray-700 bg-gray-800 rounded focus:outline-none focus:ring focus:border-blue-500"
                 onchange="handleFileUpload(event)">
         </div>
 
-        <!-- Paste Input -->
         <div class="mb-4">
-            <label class="block text-lg mb-2">Or Paste Coordinates (X, Y):</label>
-            <textarea id="input" rows="6" placeholder="Paste two-column coordinates here..."
+            <label class="block text-lg mb-2">Or Paste Coordinates (X, Y or Lat, Lon):</label>
+            <textarea id="input" rows="6" placeholder="Paste coordinates here..."
                 class="w-full p-3 border border-gray-700 bg-gray-800 rounded focus:outline-none focus:ring focus:border-blue-500"></textarea>
         </div>
 
-        <!-- Convert Button -->
         <button onclick="convertCoordinates()"
             class="w-full p-3 bg-blue-600 hover:bg-blue-700 rounded font-bold text-lg transition">Convert to UTM32N</button>
 
-        <!-- Output Section -->
         <div class="mt-6">
             <h2 class="text-xl font-semibold mb-2">Converted Coordinates:</h2>
             <div class="bg-gray-800 p-4 rounded">
@@ -52,14 +48,12 @@
     </div>
 
     <script>
-        // Define Projections
-        const projWGS84 = "EPSG:4326"; // WGS84 Lat/Lon
-        const projUTM32N = "EPSG:25832"; // UTM Zone 32N (Correct EPSG code)
-        const projGK4 = "EPSG:31468"; // GK4 (German Grid)
-        const projEPSG3857 = "EPSG:3857"; // EPSG:3857 (Web Mercator)
-        const projMGRS = "EPSG:4326"; // MGRS is considered as WGS84 Lat/Lon
+        const projWGS84 = "EPSG:4326";
+        const projUTM32N = "EPSG:25832";
+        const projGK4 = "EPSG:31468";
+        const projEPSG3857 = "EPSG:3857";
+        const projMGRS = "EPSG:4326"; // MGRS uses WGS84
 
-        // Convert DMS to Decimal Degrees
         function dmsToDecimal(degrees, minutes, seconds, direction) {
             let decimal = parseFloat(degrees) + parseFloat(minutes) / 60 + parseFloat(seconds) / 3600;
             if (direction === "S" || direction === "W") {
@@ -68,7 +62,6 @@
             return decimal;
         }
 
-        // Parse DMS format (48°18'32.6"N 10°52'07.5"E) to Decimal Degrees
         function parseDMS(dms) {
             const regex = /(\d{1,3})°(\d{1,2})'(\d{1,2}\.\d+)"([NSWE])/;
             const match = dms.match(regex);
@@ -82,47 +75,43 @@
             return NaN;
         }
 
-        // Detect the Projection Type based on input
+
         function detectProjection(x, y) {
-            if (x < 1000000 && y < 1000000) {
-                return projWGS84; // Likely Lat/Lon
-            } else if (x < 1000000 || y < 1000000) {
-                return projMGRS; // Likely MGRS
-            } else if (x > 100000 && y > 100000) {
-                return projUTM32N; // Likely UTM Zone 32N
-            }
-            return projWGS84; // Default fallback
+          if (isNaN(x) || isNaN(y)) return null; // Handle invalid input
+
+          if (x >= -180 && x <= 180 && y >= -90 && y <= 90) {
+            return projWGS84; // Lat/Lon
+          } else if (x > 100000 && y > 100000) {
+            return projUTM32N; // UTM
+          }
+           else if (x > 1000000 || y > 1000000) {
+            return projGK4; // Assuming large numbers are GK4
+          }
+          return null; // Unable to determine
         }
 
-        // Convert Coordinates
+
         function convertCoordinates() {
             const inputText = document.getElementById("input").value.trim();
             if (!inputText) return alert("Please paste coordinates first!");
 
-            // Normalize input to fix ASCII/Unicode issues
-            const normalizedText = inputText.replace(/°/g, '°')  // Ensure degree symbol is correct
-                .replace(/[\u2018\u2019\u201C\u201D]/g, "'") // Fix any smart quotes
-                .replace(/[^\x00-\x7F]/g, ''); // Remove non-ASCII characters
+            const normalizedText = inputText.replace(/°/g, '°')
+                .replace(/[\u2018\u2019\u201C\u201D]/g, "'")
+                .replace(/[^\x00-\x7F]/g, '');
 
             const lines = normalizedText.split("\n");
             let results = "Easting (X)\tNorthing (Y)\n";
             let csvOutput = "Easting (X),Northing (Y)\n";
-            let firstRow = true; // Flag to handle column names
+            let errors = ""; // Store error messages
 
             for (let line of lines) {
-                let values = line.trim().split(/\s+/); // Split by any whitespace
-                if (values.length < 2) continue; // Skip empty lines or malformed rows
+                const values = line.trim().split(/\s*[,;\t]\s*/); // Split by comma, semicolon, or tab
 
-                // Skip first row if it contains column names
-                if (firstRow && (values[0].includes("Longitude") || values[0].includes("Latitude"))) {
-                    firstRow = false;
-                    continue; // Skip column headers
-                }
+                if (values.length < 2) continue;
 
                 let x = parseFloat(values[0]);
                 let y = parseFloat(values[1]);
 
-                // Check if coordinates are in DMS format (e.g., "48°18'32.6"N")
                 if (isNaN(x)) {
                     x = parseDMS(values[0]);
                 }
@@ -130,28 +119,34 @@
                     y = parseDMS(values[1]);
                 }
 
-                if (isNaN(x) || isNaN(y)) continue; // Skip invalid rows
+                const detectedProj = detectProjection(x, y);
 
-                let detectedProj = detectProjection(x, y);
+                if (isNaN(x) || isNaN(y) || detectedProj === null) {
+                    errors += `Invalid coordinates on line: ${line}\n`;
+                    continue; // Skip invalid rows
+                }
 
-                // Convert to UTM32N
+
                 let [utmX, utmY] = proj4(detectedProj, projUTM32N, [x, y]);
 
                 results += `${utmX.toFixed(2)}\t${utmY.toFixed(2)}\n`;
                 csvOutput += `${utmX.toFixed(2)},${utmY.toFixed(2)}\n`;
             }
 
-            // Display results and allow CSV download
             if (results.trim()) {
-                document.getElementById("output").textContent = results;
+                document.getElementById("output").textContent = results + errors; // Display results and errors
                 document.getElementById("downloadBtn").dataset.csv = csvOutput;
                 document.getElementById("downloadBtn").classList.remove("hidden");
             } else {
-                alert("No valid coordinates to convert!");
+              document.getElementById("output").textContent = errors; // Display only errors if no conversions
+                if (!errors) {
+                  alert("No valid coordinates to convert!");
+                }
             }
         }
 
-        // Handle CSV Upload
+
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -159,19 +154,7 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const text = e.target.result;
-
-                // Split file into lines
-                const lines = text.split("\n");
-
-                // Clean up data and handle special characters (° to deg)
-                const cleanedData = lines.map(line => {
-                    return line.replace(/°/g, '°')  // Fix any malformed degree symbols
-                        .replace(/;/g, ',')         // Handle semicolon delimited CSV
-                        .replace(/"/g, '');         // Remove quotation marks
-                });
-
-                // Display cleaned data in input
-                document.getElementById("input").value = cleanedData.join("\n");
+                document.getElementById("input").value = text; // Directly set the text
             };
             reader.readAsText(file);
         }
@@ -185,16 +168,12 @@
             link.click();
         }
 
-        // Copy to Clipboard function
         function copyToClipboard() {
             const outputText = document.getElementById("output").textContent;
-            const textArea = document.createElement("textarea");
-            textArea.value = outputText;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textArea);
-            alert("Coordinates copied to clipboard!");
+            navigator.clipboard.writeText(outputText)
+              .then(() => alert("Coordinates copied to clipboard!"))
+              .catch(err => console.error('Failed to copy: ', err));
+
         }
     </script>
 
